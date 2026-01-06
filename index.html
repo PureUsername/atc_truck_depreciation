@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-MY">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>罗里折旧计算器 - A4 黑白打印版</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* =========================================
+           1. 网页端样式 (保持彩色，好看)
+           ========================================= */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #eef2f7;
+            padding: 20px;
+            margin: 0;
+            color: #333;
+        }
+
+        #report-wrapper {
+            display: flex;
+            justify-content: center;
+        }
+
+        #report-container {
+            background-color: #fff;
+            width: 100%;
+            max-width: 800px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50; /* 彩色标题 */
+            margin: 0 0 10px 0;
+            font-size: 22px;
+            border-bottom: 2px solid #3498db; /* 彩色线条 */
+            padding-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .input-section {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .vehicle-card {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 12px;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+        }
+
+        .vehicle-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 15px;
+            color: #2980b9; /* 彩色小标题 */
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 5px;
+        }
+
+        .form-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 80px;
+            padding: 3px;
+            text-align: right;
+            border: 1px solid #ced4da;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .section-total {
+            margin-top: 8px;
+            padding-top: 5px;
+            border-top: 1px dashed #adb5bd;
+            text-align: right;
+        }
+        
+        .section-total span { font-size: 11px; color: #6c757d; }
+        .section-total div { font-size: 14px; font-weight: bold; color: #27ae60; /* 彩色金额 */ }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 11px;
+        }
+
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 5px;
+            text-align: right;
+        }
+
+        th {
+            background-color: #3498db; /* 蓝色表头 */
+            color: white;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        td:first-child { text-align: center; }
+        .current-year-row { background-color: #fff3cd; font-weight: bold; /* 黄色高亮 */ }
+
+        .controls { text-align: center; margin-bottom: 20px; }
+        .btn-pdf {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* =========================================
+           2. PDF 专用样式 (黑白 + 严格尺寸)
+           ========================================= */
+        .pdf-mode {
+            /* 尺寸控制 */
+            width: 700px !important;
+            max-width: 700px !important;
+            min-width: 700px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+            
+            /* --- 黑白化核心代码 --- */
+            background-color: #fff !important;
+            color: #000 !important; /* 强制所有文字变黑 */
+            filter: grayscale(100%); /* 终极保险：去色滤镜 */
+        }
+
+        /* 强制输入框变成纯黑文字 */
+        .pdf-mode input {
+            border: none !important;
+            background: transparent !important;
+            padding: 0 !important;
+            width: auto !important;
+            font-weight: bold;
+            text-align: right;
+            color: #000 !important; 
+        }
+
+        /* 布局微调 */
+        .pdf-mode .input-section { gap: 10px !important; margin-bottom: 10px !important; }
+        
+        /* 卡片去色 */
+        .pdf-mode .vehicle-card {
+            padding: 8px !important;
+            border: 1px solid #000 !important; /* 黑色边框 */
+            background-color: #fff !important; /* 去掉灰色背景 */
+        }
+
+        .pdf-mode h1, .pdf-mode h3, .pdf-mode .subtitle {
+            color: #000 !important;
+            border-color: #000 !important;
+        }
+
+        .pdf-mode .section-total div {
+            color: #000 !important; /* 绿色数字变黑 */
+        }
+
+        /* 表格去色 */
+        .pdf-mode table {
+            font-size: 10px !important;
+            border-color: #000 !important;
+        }
+
+        .pdf-mode th {
+            background-color: #fff !important; /* 去掉蓝色背景 */
+            color: #000 !important; /* 白字变黑字 */
+            border: 1px solid #000 !important; /* 黑色边框 */
+            border-bottom: 2px solid #000 !important; /* 表头加粗线 */
+        }
+        
+        .pdf-mode td {
+            border: 1px solid #000 !important;
+            color: #000 !important;
+        }
+
+        /* 高亮行处理：去掉黄色背景，改为加粗边框，方便黑白打印 */
+        .pdf-mode .current-year-row {
+            background-color: #fff !important; 
+            font-weight: 900 !important; /* 字体更粗 */
+            outline: 2px solid #000 !important; /* 外框加粗 */
+        }
+    </style>
+</head>
+<body>
+
+<div class="controls">
+    <button class="btn-pdf" onclick="exportPDF()">📄 下载黑白 PDF (A4)</button>
+</div>
+
+<div id="report-wrapper">
+    <div id="report-container">
+        <h1>车辆折旧报表</h1>
+        <div class="subtitle">计算方法: 20% 余额递减法 (Reducing Balance)</div>
+
+        <div class="input-section">
+            <!-- 车头 -->
+            <div class="vehicle-card">
+                <h3>1. 车头 (Head)</h3>
+                <div class="form-group">
+                    <label>车牌:</label>
+                    <input type="text" id="headPlate" value="VAA 1234" oninput="calculate()">
+                </div>
+                <div class="form-group">
+                    <label>原价 (RM):</label>
+                    <input type="number" id="headCost" value="100000" oninput="calculate()">
+                </div>
+                <div class="form-group">
+                    <label>年份:</label>
+                    <input type="number" id="headYear" value="2020" oninput="calculate()">
+                </div>
+                <div class="section-total">
+                    <span>今年净值</span>
+                    <div id="head-current-val">RM 0.00</div>
+                </div>
+            </div>
+
+            <!-- 车尾 -->
+            <div class="vehicle-card">
+                <h3>2. 车尾 (Tail)</h3>
+                <div class="form-group">
+                    <label>车牌:</label>
+                    <input type="text" id="tailPlate" value="T 8888" oninput="calculate()">
+                </div>
+                <div class="form-group">
+                    <label>原价 (RM):</label>
+                    <input type="number" id="tailCost" value="50000" oninput="calculate()">
+                </div>
+                <div class="form-group">
+                    <label>年份:</label>
+                    <input type="number" id="tailYear" value="2022" oninput="calculate()">
+                </div>
+                <div class="section-total">
+                    <span>今年净值</span>
+                    <div id="tail-current-val">RM 0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 表格 -->
+        <table>
+            <thead>
+                <tr>
+                    <th width="10%">年份</th>
+                    <th width="18%">车头净值</th>
+                    <th width="18%">车尾净值</th>
+                    <th width="18%">合计净值</th>
+                    <th width="18%">年折旧</th>
+                    <th width="18%">月折旧</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function formatRM(num) {
+        if (num === 0) return "-";
+        return new Intl.NumberFormat('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+    }
+
+    function calculate() {
+        let headCost = parseFloat(document.getElementById('headCost').value) || 0;
+        let headYear = parseInt(document.getElementById('headYear').value);
+        let tailCost = parseFloat(document.getElementById('tailCost').value) || 0;
+        let tailYear = parseInt(document.getElementById('tailYear').value);
+
+        const currentYear = new Date().getFullYear();
+        let startYear = currentYear;
+        if (!isNaN(headYear) && !isNaN(tailYear)) startYear = Math.min(headYear, tailYear);
+        else if (!isNaN(headYear)) startYear = headYear;
+        else if (!isNaN(tailYear)) startYear = tailYear;
+
+        if (startYear < 1990) startYear = 1990; 
+        if (startYear > 2100) startYear = currentYear;
+
+        const yearsToShow = 15; 
+        const rate = 0.20; 
+
+        let tableHtml = '';
+        let currHeadNBV = headCost;
+        let currTailNBV = tailCost;
+        let currentYearHeadVal = 0;
+        let currentYearTailVal = 0;
+
+        for (let i = 0; i < yearsToShow; i++) {
+            let year = startYear + i;
+            
+            // Head Calculation
+            let headDisplay = 0, headDepr = 0;
+            if (!isNaN(headYear) && year >= headYear) {
+                if (year === headYear) {
+                    headDepr = headCost * rate;
+                    headDisplay = headCost;
+                    currHeadNBV = headCost - headDepr;
+                } else {
+                    headDisplay = currHeadNBV;
+                    headDepr = currHeadNBV * rate;
+                    currHeadNBV -= headDepr;
+                }
+            }
+
+            // Tail Calculation
+            let tailDisplay = 0, tailDepr = 0;
+            if (!isNaN(tailYear) && year >= tailYear) {
+                if (year === tailYear) {
+                    tailDepr = tailCost * rate;
+                    tailDisplay = tailCost;
+                    currTailNBV = tailCost - tailDepr;
+                } else {
+                    tailDisplay = currTailNBV;
+                    tailDepr = currTailNBV * rate;
+                    currTailNBV -= tailDepr;
+                }
+            }
+
+            let totalNBV = headDisplay + tailDisplay;
+            let totalYearlyDepr = headDepr + tailDepr;
+            let monthlyDepr = totalYearlyDepr / 12;
+
+            if (year === currentYear) {
+                currentYearHeadVal = headDisplay;
+                currentYearTailVal = tailDisplay;
+            }
+
+            let rowClass = (year === currentYear) ? 'current-year-row' : '';
+            
+            tableHtml += `
+                <tr class="${rowClass}">
+                    <td>${year}</td>
+                    <td>${formatRM(headDisplay)}</td>
+                    <td>${formatRM(tailDisplay)}</td>
+                    <td>${formatRM(totalNBV)}</td>
+                    <td>${formatRM(totalYearlyDepr)}</td>
+                    <td>${formatRM(monthlyDepr)}</td>
+                </tr>
+            `;
+        }
+
+        document.getElementById('tableBody').innerHTML = tableHtml;
+        document.getElementById('head-current-val').innerText = "RM " + formatRM(currentYearHeadVal);
+        document.getElementById('tail-current-val').innerText = "RM " + formatRM(currentYearTailVal);
+    }
+
+    function exportPDF() {
+        const element = document.getElementById('report-container');
+        
+        // 1. 加上 PDF 专用样式 (变黑白，定宽度)
+        element.classList.add('pdf-mode');
+
+        const opt = {
+            margin:       [10, 10, 10, 10], 
+            filename:     'Truck_Depreciation_BW.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { 
+                scale: 2, 
+                useCORS: true,
+            },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // 2. 生成
+        html2pdf().set(opt).from(element).save().then(() => {
+            // 3. 恢复彩色
+            element.classList.remove('pdf-mode');
+        });
+    }
+
+    window.onload = calculate;
+</script>
+
+</body>
+</html>
